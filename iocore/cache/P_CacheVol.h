@@ -288,6 +288,7 @@ struct CacheVol {
   LINK(CacheVol, link);
   // per volume stats
   RecRawStatBlock *vol_rsb = nullptr;
+  bool no_ram_cache;
 
   CacheVol() {}
 };
