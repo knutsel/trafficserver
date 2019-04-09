@@ -34,7 +34,7 @@ Format
 For each volume you want to create, enter a line with the following
 format: ::
 
-    volume=volume_number  scheme=protocol_type  size=volume_size
+    volume=volume_number  scheme=protocol_type  size=volume_size [ram_cache_enabled=0|1]
 
 where ``volume_number`` is a number between 1 and 255 (the maximum
 number of volumes is 255) and ``protocol_type`` is ``http``. Traffic
@@ -44,6 +44,11 @@ a percentage of the total cache space or an absolute value. The absolute
 value must be a multiple of 128 MB, where 128 MB is the smallest value.
 If you specify a percentage, then the size is rounded down to the
 closest multiple of 128 MB.
+
+An optional ``ram_cache_enabled`` field can be used to indicate if the 
+ram_cache should be used on this volume. The default value used when 
+``ram_cache_enabled`` is omitted is 1, meaning the ram_cache will be 
+used in front of this volume. See also :ref:`_the_ram_cache`
 
 Each volume is striped across several disks to achieve parallel I/O. For
 example: if there are four disks, then a 1-GB volume will have 256 MB on

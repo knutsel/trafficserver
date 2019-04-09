@@ -172,6 +172,7 @@ struct ConfigVol {
   off_t size;
   bool in_percent;
   int percent;
+  bool ram_cache_enabled;
   CacheVol *cachep;
   LINK(ConfigVol, link);
 };

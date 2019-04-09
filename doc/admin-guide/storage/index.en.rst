@@ -64,6 +64,8 @@ You can perform the following cache configuration tasks:
    and more. ATS can be configured to never cache, always cache,
    ignore no-cache directives, etc. These are configured in :file:`cache.config`.
 
+.. _the_ram_cache:
+
 The RAM Cache
 =============
 
@@ -136,6 +138,14 @@ To change the RAM cache size:
 #. Restart Traffic Server. If you increase the RAM cache to a size of
    1GB or more, then restart with the :program:`trafficserver` command
    (refer to :ref:`start-traffic-server`).
+
+
+Enabling / Disabling the RAM Cache on a per volume basis
+========================================================
+For some volumes it may not make sense to have the RAM cache, for instance
+for volumes that are on ram disks only. To disable the RAM Cache for a 
+volume use ``ram_cache_enabled=0`` in ``volume.config``.
+
 
 Changing Cache Capacity
 =======================

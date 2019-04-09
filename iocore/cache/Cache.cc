@@ -916,6 +916,11 @@ CacheProcessor::cacheInitialized()
     if (gnvol) {
       // new ram_caches, with algorithm from the config
       for (i = 0; i < gnvol; i++) {
+        if (!gvol[i]->cache_vol->ram_cache_enabled) {
+          Debug("cache_init", "CacheProcessor::cacheInitialized - ram_cache is disabled for volume %d.",
+                gvol[i]->cache_vol->vol_number);
+          continue;
+        }
         switch (cache_config_ram_cache_algorithm) {
         default:
         case RAM_CACHE_ALGORITHM_CLFUS:
@@ -930,6 +935,9 @@ CacheProcessor::cacheInitialized()
       if (cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE) {
         Debug("cache_init", "CacheProcessor::cacheInitialized - cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE");
         for (i = 0; i < gnvol; i++) {
+          if (!gvol[i]->cache_vol->ram_cache_enabled) {
+            continue;
+          }
           vol = gvol[i];
           gvol[i]->ram_cache->init(vol->dirlen() * DEFAULT_RAM_CACHE_MULTIPLIER, vol);
           ram_cache_bytes += gvol[i]->dirlen();
@@ -2373,7 +2381,7 @@ CacheVC::handleReadDone(int event, Event *e)
         // (cache_config_ram_cache_cutoff == 0) : no cutoffs
         cutoff_check = ((!doc_len && (int64_t)doc->total_len < cache_config_ram_cache_cutoff) ||
                         (doc_len && (int64_t)doc_len < cache_config_ram_cache_cutoff) || !cache_config_ram_cache_cutoff);
-        if (cutoff_check && !f.doc_from_ram_cache) {
+        if (cutoff_check && !f.doc_from_ram_cache && vol->cache_vol->ram_cache_enabled) {
           uint64_t o = dir_offset(&dir);
           vol->ram_cache->put(read_key, buf.get(), doc->len, http_copy_hdr, (uint32_t)(o >> 32), (uint32_t)o);
         }
@@ -2406,8 +2414,11 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
 
   // check ram cache
   ink_assert(vol->mutex->thread_holding == this_ethread());
-  int64_t o           = dir_offset(&dir);
-  int ram_hit_state   = vol->ram_cache->get(read_key, &buf, (uint32_t)(o >> 32), (uint32_t)o);
+  int64_t o         = dir_offset(&dir);
+  int ram_hit_state = 0;
+  if (vol->cache_vol->ram_cache_enabled) {
+    ram_hit_state = vol->ram_cache->get(read_key, &buf, (uint32_t)(o >> 32), (uint32_t)o);
+  }
   f.compressed_in_ram = (ram_hit_state > RAM_HIT_COMPRESS_NONE) ? 1 : 0;
   if (ram_hit_state >= RAM_HIT_COMPRESS_NONE) {
     goto LramHit;
@@ -2446,6 +2457,7 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
   return EVENT_CONT;
 
 LramHit : {
+  Debug("cache", "CacheVC::handleRead LramHhit");
   f.doc_from_ram_cache = true;
   io.aio_result        = io.aiocb.aio_nbytes;
   Doc *doc             = (Doc *)buf->data();
@@ -2455,6 +2467,7 @@ LramHit : {
   }
 }
 LmemHit:
+  Debug("cache", "CacheVC::handleRead LmemHhit");
   f.doc_from_ram_cache = true;
   io.aio_result        = io.aiocb.aio_nbytes;
   POP_HANDLER;
@@ -2665,7 +2678,8 @@ cplist_update()
     for (config_vol = config_volumes.cp_queue.head; config_vol; config_vol = config_vol->link.next) {
       if (config_vol->number == cp->vol_number) {
         if (cp->scheme == config_vol->scheme) {
-          config_vol->cachep = cp;
+          config_vol->cachep    = cp;
+          cp->ram_cache_enabled = config_vol->ram_cache_enabled;
         } else {
           /* delete this volume from all the disks */
           int d_no;

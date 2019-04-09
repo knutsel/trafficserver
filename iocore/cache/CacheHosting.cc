@@ -642,12 +642,13 @@ ConfigVolumes::BuildListFromString(char *config_file_path, char *file_buf)
     line_num++;
 
     char *end;
-    char *line_end    = nullptr;
-    const char *err   = nullptr;
-    int volume_number = 0;
-    CacheType scheme  = CACHE_NONE_TYPE;
-    int size          = 0;
-    int in_percent    = 0;
+    char *line_end        = nullptr;
+    const char *err       = nullptr;
+    int volume_number     = 0;
+    CacheType scheme      = CACHE_NONE_TYPE;
+    int size              = 0;
+    int in_percent        = 0;
+    int ram_cache_enabled = 1; // default is to use the ram cache
 
     while (true) {
       // skip all blank spaces at beginning of line
@@ -735,6 +736,12 @@ ConfigVolumes::BuildListFromString(char *config_file_path, char *file_buf)
         } else {
           in_percent = 0;
         }
+      } else if (strcasecmp(tmp, "ram_cache_enabled") == 0) { // match ram_cache_enabled
+        tmp += 18;                                            // move past the '\0' that was put in in place of the '=' above
+        ram_cache_enabled = atoi(tmp);
+        while (ParseRules::is_digit(*tmp)) {
+          tmp++;
+        }
       }
 
       // ends here
@@ -757,6 +764,11 @@ ConfigVolumes::BuildListFromString(char *config_file_path, char *file_buf)
       } else {
         configp->in_percent = false;
       }
+      if (ram_cache_enabled == 1) {
+        configp->ram_cache_enabled = true;
+      } else {
+        configp->ram_cache_enabled = false;
+      }
       configp->scheme = scheme;
       configp->size   = size;
       configp->cachep = nullptr;
@@ -767,7 +779,8 @@ ConfigVolumes::BuildListFromString(char *config_file_path, char *file_buf)
       } else {
         ink_release_assert(!"Unexpected non-HTTP cache volume");
       }
-      Debug("cache_hosting", "added volume=%d, scheme=%d, size=%d percent=%d", volume_number, scheme, size, in_percent);
+      Debug("cache_hosting", "added volume=%d, scheme=%d, size=%d percent=%d ram_cache_enabled=%d", volume_number, scheme, size,
+            in_percent, configp->ram_cache_enabled);
     }
 
     tmp = bufTok.iterNext(&i_state);
