@@ -936,6 +936,7 @@ CacheProcessor::cacheInitialized()
         Debug("cache_init", "CacheProcessor::cacheInitialized - cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE");
         for (i = 0; i < gnvol; i++) {
           if (!gvol[i]->cache_vol->ram_cache_enabled) {
+            Debug("cache_init", "CacheProcessor::cacheInitialized - skipping ram_cache i=%d", i);
             continue;
           }
           vol = gvol[i];
@@ -979,6 +980,11 @@ CacheProcessor::cacheInitialized()
               cache_config_ram_cache_cutoff);
 
         for (i = 0; i < gnvol; i++) {
+          if (!gvol[i]->cache_vol->ram_cache_enabled) {
+            Debug("cache_init", "CacheProcessor::cacheInitialized - skipping ram_cache i=%d", i);
+            continue;
+          }
+
           vol = gvol[i];
           double factor;
           if (gvol[i]->cache == theCache) {
